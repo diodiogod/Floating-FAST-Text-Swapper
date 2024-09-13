@@ -1,0 +1,8 @@
+# Ignore the virtual environment folder
+venv/
+
+# Ignore other files and folders
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
