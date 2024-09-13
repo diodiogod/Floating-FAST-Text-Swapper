@@ -1,5 +1,5 @@
 # Floating FAST Text Swapper
-Text replacer and swapper. A floating box that you can drag and drop your txt file, and it will swap two chosen words.
+Text replacer and swapper. A floating box that you can drag and drop your txt file, and it will replace or swap two chosen words.
 
 ![example](./example.jpg)
 
@@ -16,4 +16,5 @@ Example:
 ```
 py myapp.py
 ```
+Drag a .txt file on the floating app box. It will auto save any changes.
 ctrl + c to exit or close the floating window
