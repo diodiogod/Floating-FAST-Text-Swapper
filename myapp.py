@@ -3,6 +3,9 @@ from tkinterdnd2 import TkinterDnD, DND_FILES
 import os
 import re
 
+os.environ['TKDND_LIBRARY'] = os.path.join(os.path.dirname(__file__), 'tkdnd2.9.2')
+
+
 # Function to replace words and preserve case
 def replace_word(content, old_word, new_word, swap_mode=False):
     def replace_case(word, replacement_word):
