@@ -18,3 +18,6 @@ py myapp.py
 ```
 Drag a .txt file on the floating app box. It will auto save any changes.
 ctrl + c to exit or close the floating window
+```
+## Version History
+16/09/24	config.json to set default words to replace and swap mode on or off
