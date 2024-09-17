@@ -1,8 +1,10 @@
+import re
 import tkinter as tk
 from tkinterdnd2 import TkinterDnD, DND_FILES
 import os
-import re
 import json
+
+# Ensure the proper path for TkinterDnD library
 os.environ['TKDND_LIBRARY'] = os.path.join(os.path.dirname(__file__), 'tkdnd2.9.2')
 
 # Function to load config file
@@ -16,68 +18,77 @@ def load_config():
         # Default values if config.json is not found
         return {"old_word": "", "new_word": "", "swap_mode": False}
 
-# Function to replace words and preserve case, and count replacements
+# Function to replace words and preserve case
 def replace_word(content, old_word, new_word, swap_mode=False):
     def replace_case(word, replacement_word):
         if word.isupper():
-            return replacement_word.upper()  # Keep replacement uppercase
+            return replacement_word.upper()
         elif word[0].isupper():
-            return replacement_word.capitalize()  # Capitalize the replacement
+            return replacement_word.capitalize()
         else:
-            return replacement_word.lower()  # Make replacement lowercase
+            return replacement_word.lower()
 
-    words = re.split(r'(\W+)', content)  # Split by non-word characters to preserve spaces and punctuation
-    replacement_count_old_to_new = 0  # Counter for old_word -> new_word
-    replacement_count_new_to_old = 0  # Counter for new_word -> old_word (swap mode)
+    old_is_phrase = " " in old_word
+    new_is_phrase = " " in new_word
 
-    for i, word in enumerate(words):
-        if swap_mode:
-            # Swap both ways without looping
-            if re.fullmatch(old_word, word, re.IGNORECASE):
-                words[i] = replace_case(word, new_word)
+    replacement_count_old_to_new = 0  # Count replacements old_word -> new_word
+    replacement_count_new_to_old = 0  # Count replacements new_word -> old_word (swap mode)
+
+    if swap_mode:
+        def swap(match):
+            nonlocal replacement_count_old_to_new, replacement_count_new_to_old
+            phrase = match.group(0)
+            if phrase.lower() == old_word.lower():
                 replacement_count_old_to_new += 1
-            elif re.fullmatch(new_word, word, re.IGNORECASE):
-                words[i] = replace_case(word, old_word)
+                return replace_case(phrase, new_word)
+            elif phrase.lower() == new_word.lower():
                 replacement_count_new_to_old += 1
-        else:
-            # Standard replacement from old_word to new_word
-            if re.fullmatch(old_word, word, re.IGNORECASE):
-                words[i] = replace_case(word, new_word)
-                replacement_count_old_to_new += 1
+                return replace_case(phrase, old_word)
+            return phrase
 
-    return ''.join(words), replacement_count_old_to_new, replacement_count_new_to_old  # Return modified content and counts
+        pattern = f'({re.escape(old_word)}|{re.escape(new_word)})' if old_is_phrase or new_is_phrase else rf'\b({re.escape(old_word)}|{re.escape(new_word)})\b'
+        modified_content = re.sub(pattern, swap, content, flags=re.IGNORECASE)
+    else:
+        pattern = re.escape(old_word) if old_is_phrase else rf'\b{re.escape(old_word)}\b'
+        modified_content = re.sub(pattern, lambda match: replace_case(match.group(0), new_word), content, flags=re.IGNORECASE)
+        replacement_count_old_to_new = len(re.findall(pattern, content, flags=re.IGNORECASE))
 
-# Function that handles the file dropped
+    return modified_content, replacement_count_old_to_new, replacement_count_new_to_old
+
+# Handle the drag-and-drop of files
 def handle_file(event):
-    filepath = event.data.strip("{}")  # Get the file path and remove curly braces
-    if filepath.lower().endswith(".txt"):
-        with open(filepath, "r", encoding="utf-8") as file:
-            content = file.read()
+    filepath = event.data
+    filepath = filepath.strip('{}')  # Remove extra braces on some platforms
+    process_file(filepath)
 
-        # Get the words from the entry fields
-        old_word = entry_find.get()
-        new_word = entry_replace.get()
+# Process the file and replace phrases or words
+def process_file(filepath):
+    # Get the current inputs from the GUI (not from config)
+    old_phrase = entry_find.get()  # Use the input from the entry field
+    new_phrase = entry_replace.get()  # Use the input from the entry field
+    swap_mode = bool(swap_var.get())  # Use the current swap mode from the checkbox
 
-        # Check if swap mode is active
-        swap_mode = swap_var.get() == 1
+    # Open and read the content of the file
+    with open(filepath, "r", encoding="utf-8") as file:
+        content = file.read()
 
-        # Replace the words (and swap if necessary)
-        modified_content, count_old_to_new, count_new_to_old = replace_word(content, old_word, new_word, swap_mode=swap_mode)
+    # Perform the phrase or word replacement
+    modified_content, count_old_to_new, count_new_to_old = replace_word(content, old_phrase, new_phrase, swap_mode=swap_mode)
 
-        # Save the file automatically
-        with open(filepath, "w", encoding="utf-8") as file:
-            file.write(modified_content)
+    # Save the modified file
+    with open(filepath, "w", encoding="utf-8") as file:
+        file.write(modified_content)
 
-        # Update the status label with detailed counts
-        if swap_mode:
-            label_status.config(
-                text=f"File processed: {os.path.basename(filepath)}. Replacements: {old_word}->{new_word}: {count_old_to_new}, {new_word}->{old_word}: {count_new_to_old}")
-        else:
-            label_status.config(
-                text=f"File processed: {os.path.basename(filepath)}. Replacements: {old_word}->{new_word}: {count_old_to_new}")
+    # Update the status label with replacement counts
+    if swap_mode:
+        label_status.config(
+            text=f"File processed: {os.path.basename(filepath)}.\nReplacements: {old_phrase} -> {new_phrase}: {count_old_to_new}, {new_phrase} -> {old_phrase}: {count_new_to_old}")
+    else:
+        label_status.config(
+            text=f"File processed: {os.path.basename(filepath)}.\nReplacements: {old_phrase} -> {new_phrase}: {count_old_to_new}")
 
-# Create a floating, draggable window with tkinter
-root = TkinterDnD.Tk()  # Use TkinterDnD for drag-and-drop
+# Create the Tkinter GUI
+root = TkinterDnD.Tk()
 root.title("Text Replacer")
 root.geometry("400x250")
 root.wm_attributes("-topmost", 1)  # Keep the window on top
@@ -106,7 +117,7 @@ check_swap.pack(pady=5)
 label_status = tk.Label(root, text="Drop a .txt file here")
 label_status.pack(pady=20)
 
-# Enable the window to accept drag-and-drop of files
+# Enable drag-and-drop for files
 root.drop_target_register(DND_FILES)
 root.dnd_bind('<<Drop>>', handle_file)
 
