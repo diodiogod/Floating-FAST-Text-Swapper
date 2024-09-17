@@ -89,7 +89,7 @@ def process_file(filepath):
 
 # Create the Tkinter GUI
 root = TkinterDnD.Tk()
-root.title("Text Replacer")
+root.title("Text Swapper")
 root.geometry("400x250")
 root.wm_attributes("-topmost", 1)  # Keep the window on top
 
