@@ -93,6 +93,10 @@ root.title("Text Replacer")
 root.geometry("400x250")
 root.wm_attributes("-topmost", 1)  # Keep the window on top
 
+# Set the app icon using the prepared .ico file
+icon_path = os.path.join(os.getcwd(), "app_icon.ico")  # Ensure the .ico file is in the same directory
+root.iconbitmap(icon_path)
+
 # Load default settings from config file
 config = load_config()
 
